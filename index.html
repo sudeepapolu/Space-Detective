@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Space Archaeologist — NASA Space Apps 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0e14; color: #e6edf7; user-select: none; }
+    #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; z-index: 1; }
+    #hud { position: fixed; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; gap: 12px; z-index: 10; flex-wrap: wrap; }
+    .card { background: rgba(19, 25, 36, 0.94); border: 1px solid #263247; border-radius: 10px; padding: 10px 14px; pointer-events: auto; }
+    .badge { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: #f59e0b; font-weight: 700; }
+    h1 { font-size: 17px; margin-top: 2px; }
+    .sub { font-size: 12px; color: #8b9bb4; margin-top: 3px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .stat { text-align: right; padding: 0 4px; }
+    .stat-lbl { font-size: 10px; text-transform: uppercase; color: #8b9bb4; }
+    .stat-val { font-size: 16px; font-weight: 700; color: #38bdf8; }
+    .zone-btn { background: #172030; color: #94a3b8; border: 1px solid #263247; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .zone-btn.active { background: #38bdf8; color: #06101d; border-color: #38bdf8; }
+    .btn { background: #1c2536; color: #e6edf7; border: 1px solid #263247; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn:hover { border-color: #38bdf8; }
+    #bottom-bar { position: fixed; bottom: 20px; left: 20px; background: rgba(19,25,36,0.94); border: 1px solid #263247; border-radius: 10px; padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 12px; z-index: 10; }
+    #btn-scan { background: #10b981; color: #04130d; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; display: none; }
+    #dpad { position: fixed; bottom: 20px; right: 20px; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 6px; z-index: 15; }
+    .pad { background: rgba(19,25,36,0.94); border: 1px solid #394b6b; color: #38bdf8; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .pad:active { background: #38bdf8; color: #06101d; }
+    .backdrop { position: fixed; inset: 0; background: rgba(5,8,13,0.85); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+    .backdrop.active { display: flex; }
+    .modal { background: #131924; border: 1px solid #263247; border-radius: 14px; max-width: 620px; width: 100%; padding: 24px; max-height: 90vh; overflow-y: auto; }
+    .tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: rgba(56,189,248,0.15); color: #38bdf8; margin-bottom: 10px; }
+    .tag.green { background: rgba(16,185,129,0.18); color: #10b981; }
+    .modal h2 { font-size: 20px; margin-bottom: 8px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+    .box { background: #0e131c; border: 1px solid #263247; border-radius: 8px; padding: 8px; }
+    .box span { display: block; font-size: 11px; color: #8b9bb4; }
+    .box strong { font-size: 12px; }
+    .story { line-height: 1.55; color: #cfd9e8; font-size: 14px; margin-bottom: 12px; }
+    .sci { background: rgba(245,158,11,0.08); border-left: 3px solid #f59e0b; padding: 10px 12px; border-radius: 0 8px 8px 0; margin-bottom: 14px; font-size: 13px; }
+    .photo-box { background: #0e131c; border: 1px solid #263247; border-radius: 10px; overflow: hidden; margin-bottom: 12px; text-align: center; }
+    .photo-box img { width: 100%; max-height: 220px; object-fit: cover; display: none; background: #090c12; }
+    .photo-cap { font-size: 11px; color: #8b9bb4; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .img-link { color: #38bdf8; font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+    .img-link:hover { text-decoration: underline; }
+    .quiz { background: #0e131c; border: 1px solid #263247; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+    .quiz p { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    .opts { display: flex; flex-direction: column; gap: 8px; }
+    .opt { text-align: left; background: #172030; border: 1px solid #263247; color: #e6edf7; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .opt.correct { background: rgba(16,185,129,0.2); border-color: #10b981; color: #a7f3d0; }
+    .opt.wrong { background: rgba(239,68,68,0.2); border-color: #ef4444; }
+    .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .src { font-size: 11px; color: #8b9bb4; }
+    .primary { background: #38bdf8; color: #06101d; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+    .primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div class="card">
+      <div class="badge">NASA Space Apps 2026 • Heritage Survey</div>
+      <h1>Space Archaeologist</h1>
+      <div class="sub" id="readout">Switch sectors to explore all 13 NASA sites</div>
+    </div>
+    <div class="card row">
+      <button type="button" class="zone-btn active" data-zone="moon">Moon (4)</button>
+      <button type="button" class="zone-btn" data-zone="mars">Mars (5)</button>
+      <button type="button" class="zone-btn" data-zone="deep">Deep Space (4)</button>
+      <div class="stat"><div class="stat-lbl">Total Found</div><div class="stat-val" id="score">0 / 13</div></div>
+      <div class="stat"><div class="stat-lbl">Nearest</div><div class="stat-val" id="dist">-- m</div></div>
+      <button type="button" class="btn" id="btn-sources">Sources</button>
+    </div>
+  </div>
+  <div id="bottom-bar">
+    <span id="hint">Click any glowing circle to drive your rover &amp; scan</span>
+    <button type="button" id="btn-scan">SCAN ARTIFACT</button>
+  </div>
+  <div id="dpad">
+    <div></div><button type="button" class="pad" data-dir="up">&#9650;</button><div></div>
+    <button type="button" class="pad" data-dir="left">&#9668;</button>
+    <button type="button" class="pad" data-dir="down">&#9660;</button>
+    <button type="button" class="pad" data-dir="right">&#9658;</button>
+  </div>
+  <div class="backdrop" id="art-modal">
+    <div class="modal">
+      <div class="tag" id="m-tag">Status</div>
+      <h2 id="m-title">Title</h2>
+      <div class="grid3">
+        <div class="box"><span>Mission &amp; Years</span><strong id="m-year"></strong></div>
+        <div class="box"><span>Location / Coords</span><strong id="m-coords"></strong></div>
+        <div class="box"><span>Category</span><strong id="m-type"></strong></div>
+      </div>
+      <p class="story" id="m-story"></p>
+      <div class="sci" id="m-sci"></div>
+      <div class="photo-box">
+        <img id="m-photo" alt="NASA Archival Photograph" />
+        <div class="photo-cap">
+          <span id="m-photo-status">Loading NASA archival image...</span>
+          <a class="img-link" id="m-img" href="#" target="_blank" rel="noopener noreferrer">View NASA Archival Imagery &rarr;</a>
+        </div>
+      </div>
+      <div class="quiz">
+        <p id="m-q"></p>
+        <div class="opts" id="m-opts"></div>
+      </div>
+      <div class="footer">
+        <span class="src" id="m-src"></span>
+        <button type="button" class="primary" id="m-close" disabled>Answer Check to Log</button>
+      </div>
+    </div>
+  </div>
+  <div class="backdrop" id="info-modal">
+    <div class="modal">
+      <div class="tag green" id="i-tag">Debrief</div>
+      <h2 id="i-title">Report</h2>
+      <p class="story" id="i-body"></p>
+      <div class="footer">
+        <span class="src">NASA Space Apps Challenge 2026</span>
+        <button type="button" class="primary" id="i-close">Resume Exploration</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    var ZONES = {
+      moon: { bg: "#46494f", crater: "#35383d", craterStroke: "#686c73", accent: "#38bdf8", label: "ARTEMIS ROVER" },
+      mars: { bg: "#4a2416", crater: "#36190e", craterStroke: "#6e3823", accent: "#fb923c", label: "MARS SURVEYOR" },
+      deep: { bg: "#05070f", crater: "#11182e", craterStroke: "#1e294b", accent: "#c084fc", label: "DEEP SPACE PROBE" }
+    };
+
+    var ARTIFACTS = [
+      // MOON (4)
+      { id: "moon-apollo-11-eagle", zone: "moon", name: "Apollo 11 Lunar Module 'Eagle' Descent Stage", year: "1969", coords: "0.6741 N, 23.4730 E", type: "The Moon", status: "INACTIVE MONUMENT", green: false, nx: 0.22, ny: 0.30, color: "#f59e0b", story: "Descent stage of the first crewed lunar lander, left behind as a launchpad when the Ascent Stage returned to lunar orbit.", sci: "Science Impact: Proved crewed precision landing and surface operations; deployed early seismic and laser ranging experiments.", img: "https://images.nasa.gov/search?q=Apollo%2011%20Eagle%20lunar%20module&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "Why was the Eagle Descent Stage left behind on the Moon?", opts: ["It served as a launchpad for the upper Ascent Stage", "Its landing legs were welded to lunar bedrock", "It was converted into a permanent crew habitat"], ans: 0, src: "NASA NSSDCA / Apollo Lunar Surface Journal" },
+      { id: "moon-apollo-lrv", zone: "moon", name: "Apollo Lunar Roving Vehicles (Apollo 15, 16, 17)", year: "1971–1972", coords: "26.1322 N, 3.6339 E", type: "The Moon", status: "PARKED PERMANENTLY", green: false, nx: 0.78, ny: 0.30, color: "#38bdf8", story: "Three battery-powered four-wheel electric 'moon buggies' driven by Apollo 15, 16, and 17 astronauts across rugged lunar terrain.", sci: "Science Impact: Expanded astronaut exploration range from hundreds of meters to over 35 km per mission, enabling diverse rock sampling.", img: "https://images.nasa.gov/search?q=Lunar%20Roving%20Vehicle%20Apollo&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "How were the three Apollo Lunar Roving Vehicles powered?", opts: ["Liquid rocket propellant", "Non-rechargeable silver-zinc electric batteries", "Radioisotope thermoelectric generators"], ans: 1, src: "NASA NSSDCA / Apollo 15-17 Reports" },
+      { id: "moon-alsep", zone: "moon", name: "ALSEP Scientific Packages & Laser Retroreflectors", year: "1969–Present", coords: "0.6741 N, 23.4730 E", type: "The Moon", status: "RETROREFLECTORS STILL ACTIVE", green: true, nx: 0.22, ny: 0.74, color: "#10b981", story: "Apollo Lunar Surface Experiments Packages including seismometers, magnetometers, and passive laser ranging retroreflectors.", sci: "Science Impact: Revealed moonquakes; passive mirror arrays are still used today to measure the Moon's 3.8 cm/year drift from Earth.", img: "https://images.nasa.gov/search?q=ALSEP%20Apollo%20lunar%20surface&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "Which part of the Apollo surface science packages is still actively used today?", opts: ["The passive Laser Ranging Retroreflector mirror arrays", "Solar-powered weather balloons", "Liquid water drilling rigs"], ans: 0, src: "NASA NSSDCA / Goddard Lunar Laser Ranging" },
+      { id: "moon-surveyor", zone: "moon", name: "Surveyor Robotic Landers (Surveyor 1, 3, 5, 6, 7)", year: "1966–1968", coords: "3.016 S, 23.418 W", type: "The Moon", status: "VISITED BY APOLLO 12", green: false, nx: 0.78, ny: 0.74, color: "#a855f7", story: "Uncrewed robotic probes sent in the 1960s to demonstrate soft landings and test whether lunar regolith could support crewed landers.", sci: "Science Impact: Confirmed firm bearing strength of lunar soil; Apollo 12 astronauts later retrieved Surveyor 3's camera.", img: "https://images.nasa.gov/search?q=Surveyor%203%20Apollo%2012&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "What happened to Surveyor 3 two and a half years after it landed?", opts: ["It launched itself back to Earth", "Apollo 12 astronauts walked to it and retrieved its camera", "It drove to the lunar north pole"], ans: 1, src: "NASA NSSDCA / Surveyor Program Archive" },
+
+      // MARS (5)
+      { id: "mars-sojourner", zone: "mars", name: "Sojourner Rover & Mars Pathfinder Lander", year: "1997", coords: "19.13 N, 33.22 W", type: "Mars", status: "INACTIVE MONUMENT", green: false, nx: 0.20, ny: 0.28, color: "#f59e0b", story: "The first wheeled rover to operate on another planet, delivered by the airbag-cushioned Mars Pathfinder lander.", sci: "Science Impact: Operated 12 times longer than its planned 7-day mission, analyzing Martian rocks and ancient flood deposits.", img: "https://images.nasa.gov/search?q=Sojourner%20rover%20Mars%20Pathfinder&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "What historic milestone did Sojourner achieve in 1997?", opts: ["First rover to operate on another planet", "First spacecraft to land on an asteroid", "First human landing on Mars"], ans: 0, src: "NASA NSSDCA / Mars Pathfinder Mission" },
+      { id: "mars-spirit-opportunity", zone: "mars", name: "Spirit & Opportunity Mars Exploration Rovers", year: "2004–2018", coords: "14.57 S, 175.47 E", type: "Mars", status: "INACTIVE MONUMENTS", green: false, nx: 0.80, ny: 0.28, color: "#38bdf8", story: "Twin solar-powered geology rovers designed for 90-day missions that operated for 6 years and nearly 15 years respectively.", sci: "Science Impact: Found mineral evidence proving liquid water once flowed on ancient Mars; Opportunity drove a record 45.16 km.", img: "https://images.nasa.gov/search?q=Opportunity%20rover%20Mars&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "What major discovery did twin rovers Spirit and Opportunity make?", opts: ["Active volcanoes erupting on Mars", "Mineral evidence that liquid water once existed on ancient Mars", "Liquid oceans beneath Mars's polar caps"], ans: 1, src: "NASA NSSDCA / Mars Exploration Rovers" },
+      { id: "mars-viking", zone: "mars", name: "Viking 1 & Viking 2 Landers", year: "1976–1982", coords: "22.48 N, 47.97 W", type: "Mars", status: "INACTIVE MONUMENTS", green: false, nx: 0.20, ny: 0.74, color: "#10b981", story: "The first U.S. spacecraft to land safely and operate on the Martian surface, powered by radioisotope thermoelectric generators.", sci: "Science Impact: Transmitted the first high-resolution surface panoramas of Mars and monitored multi-year weather cycles.", img: "https://images.nasa.gov/search?q=Viking%201%20lander%20Mars&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "When did Viking 1 and 2 become the first U.S. landers to operate on Mars?", opts: ["1969", "1976", "1997"], ans: 1, src: "NASA NSSDCA / Viking Mission Archive" },
+      { id: "mars-phoenix-insight", zone: "mars", name: "Phoenix & InSight Stationary Mars Landers", year: "2008 & 2018–2022", coords: "4.50 N, 135.62 E", type: "Mars", status: "SOLAR POWER DEPLETED", green: false, nx: 0.80, ny: 0.74, color: "#a855f7", story: "Phoenix dug into Martian arctic soil, while InSight placed a ultra-sensitive seismometer directly on Elysium Planitia.", sci: "Science Impact: Phoenix verified subsurface water ice; InSight detected over 1,300 marsquakes and mapped Mars's core.", img: "https://images.nasa.gov/search?q=InSight%20lander%20Mars&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "What did InSight's seismometer detect on Mars before dust covered its solar panels?", opts: ["Over 1,300 marsquakes revealing Mars's interior structure", "Underground lava tubes filled with oxygen", "Signals from buried Viking probes"], ans: 0, src: "NASA NSSDCA / InSight & Phoenix Missions" },
+      { id: "mars-ingenuity", zone: "mars", name: "Ingenuity Mars Helicopter", year: "2021–2024", coords: "18.38 N, 77.58 E", type: "Mars", status: "STATIONARY ARTIFACT", green: true, nx: 0.50, ny: 0.25, color: "#fb7185", story: "The first aircraft to achieve powered, controlled flight on another planet, completing 72 flights across Jezero Crater.", sci: "Science Impact: Proved aerodynamic flight works in Mars's 1%-density atmosphere and scouted ahead for Perseverance.", img: "https://images.nasa.gov/search?q=Ingenuity%20Mars%20Helicopter&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "Why did Ingenuity become a stationary artifact after 72 flights?", opts: ["It ran out of jet fuel", "It sustained rotor blade damage during landing on Flight 72", "It flew into orbit around Phobos"], ans: 1, src: "NASA NSSDCA / JPL Ingenuity" },
+
+      // DEEP SPACE & ASTEROIDS (4)
+      { id: "deep-dawn", zone: "deep", name: "Dawn Spacecraft (Orbiting Ceres)", year: "2007–2018", coords: "Polar Orbit • Dwarf Planet Ceres", type: "Deep Space", status: "UNPOWERED PERPETUAL ORBIT", green: false, nx: 0.24, ny: 0.30, color: "#38bdf8", story: "Ion-propelled spacecraft that became the first probe to orbit two extraterrestrial bodies: protoplanet Vesta and dwarf planet Ceres.", sci: "Science Impact: Revealed bright sodium carbonate salt deposits and ancient cryovolcanic activity on Ceres.", img: "https://images.nasa.gov/search?q=Dawn%20spacecraft%20Ceres&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "Where does the Dawn spacecraft reside after running out of hydrazine fuel in 2018?", opts: ["Crashed onto the surface of Vesta", "In a perpetual, unpowered orbit around dwarf planet Ceres", "Returned to Earth orbit"], ans: 1, src: "NASA NSSDCA / Dawn Mission" },
+      { id: "deep-near-shoemaker", zone: "deep", name: "NEAR Shoemaker Spacecraft", year: "1996–2001", coords: "Asteroid 433 Eros", type: "Deep Space", status: "RESTING ON ASTEROID", green: false, nx: 0.76, ny: 0.30, color: "#f59e0b", story: "Near Earth Asteroid Rendezvous probe that orbited 433 Eros for a year before executing a controlled touchdown on its surface.", sci: "Science Impact: First spacecraft to orbit and land on an asteroid, collecting close-up gamma-ray composition data.", img: "https://images.nasa.gov/search?q=NEAR%20Shoemaker%20Eros&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "What was NEAR Shoemaker the first spacecraft to accomplish?", opts: ["Orbit and land on an asteroid (433 Eros)", "Land on a comet nucleus", "Leave the solar system"], ans: 0, src: "NASA NSSDCA / NEAR Shoemaker" },
+      { id: "deep-pioneer", zone: "deep", name: "Pioneer 10 & Pioneer 11 Probes", year: "1972–2003", coords: "Outbound Interstellar Trajectory", type: "Deep Space", status: "DRIFTING BEYOND SOLAR SYSTEM", green: true, nx: 0.24, ny: 0.74, color: "#10b981", story: "Early outer-planet explorers carrying golden engraved plaques depicting humanity as they travel indefinitely into deep space.", sci: "Science Impact: First spacecraft to traverse the asteroid belt and capture close-up flyby data of Jupiter and Saturn.", img: "https://images.nasa.gov/search?q=Pioneer%2010%20spacecraft&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "Which planets were Pioneer 10 and 11 the first spacecraft to visit up close?", opts: ["Mercury and Venus", "Jupiter and Saturn", "Uranus and Neptune"], ans: 1, src: "NASA NSSDCA / Pioneer Project" },
+      { id: "deep-kepler", zone: "deep", name: "Kepler Space Telescope", year: "2009–2018", coords: "Earth-Trailing Solar Orbit", type: "Deep Space", status: "DECOMMISSIONED IN SOLAR ORBIT", green: false, nx: 0.76, ny: 0.74, color: "#c084fc", story: "Planet-hunting space observatory that stared at over 500,000 stars to detect tiny dips in starlight from transiting planets.", sci: "Science Impact: Discovered over 2,700 confirmed exoplanets, showing Earth-sized planets are common across our galaxy.", img: "https://images.nasa.gov/search?q=Kepler%20Space%20Telescope&page=1&media=image,video,audio&yearStart=1920&yearEnd=2026", q: "How did the Kepler Space Telescope discover thousands of exoplanets?", opts: ["By landing probes on nearby stars", "By measuring tiny dips in brightness when planets crossed in front of stars", "By bouncing radar pulses off distant galaxies"], ans: 1, src: "NASA NSSDCA / Kepler Mission" }
+    ];
+
+    var canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    var W = window.innerWidth || 1280, H = window.innerHeight || 720;
+    canvas.width = W; canvas.height = H;
+
+    var currentZone = "moon";
+    var rover = { x: W * 0.5, y: H * 0.52, angle: -1.57 };
+    var target = null, keys = {}, pad = { up: false, down: false, left: false, right: false };
+    var scanned = {}, scannedCount = 0, modalOpen = false, tracks = [], pulse = 18, victoryShown = false;
+
+    var craters = [], maria = [], rocks = [], stars = [], belt = [];
+    for (var i = 0; i < 28; i++) {
+      craters.push({
+        nx: (Math.sin(i * 91.7) * 0.5 + 0.5) * 0.88 + 0.06,
+        ny: (Math.cos(i * 47.3) * 0.5 + 0.5) * 0.78 + 0.12,
+        r: 12 + (i % 6) * 10,
+        rays: i % 7 === 0
+      });
+    }
+    for (var m = 0; m < 6; m++) {
+      maria.push({
+        nx: (Math.sin(m * 63.1 + 1.2) * 0.5 + 0.5) * 0.8 + 0.1,
+        ny: (Math.cos(m * 39.4 + 0.7) * 0.5 + 0.5) * 0.7 + 0.15,
+        rx: 130 + (m % 3) * 75,
+        ry: 90 + ((m + 1) % 3) * 55,
+        rot: (m * 1.1) % Math.PI,
+        dark: m % 2 === 0
+      });
+    }
+    for (var rk = 0; rk < 70; rk++) {
+      rocks.push({
+        nx: (Math.sin(rk * 127.1) * 0.5 + 0.5) * 0.94 + 0.03,
+        ny: (Math.cos(rk * 311.7) * 0.5 + 0.5) * 0.88 + 0.06,
+        r: 1.2 + (rk % 4) * 1.1,
+        shade: rk % 3 === 0 ? "#6e737b" : "#2c2f33",
+        marsShade: rk % 3 === 0 ? "#783c26" : "#261008"
+      });
+    }
+    var starColors = ["#ffffff", "#dbeafe", "#fef3c7", "#fed7aa", "#e0e7ff"];
+    for (var s = 0; s < 160; s++) {
+      stars.push({
+        nx: (Math.sin(s * 173.3) * 0.5 + 0.5),
+        ny: (Math.cos(s * 241.9) * 0.5 + 0.5),
+        r: (s % 9 === 0) ? 1.9 : (s % 3 === 0 ? 1.2 : 0.7),
+        alpha: 0.25 + (s % 7) * 0.1,
+        col: starColors[s % starColors.length]
+      });
+    }
+    for (var b = 0; b < 32; b++) {
+      var bt = b / 32;
+      belt.push({
+        nx: 0.42 + bt * 0.48 + Math.sin(b * 37.2) * 0.05,
+        ny: 0.12 + bt * 0.42 + Math.cos(b * 53.9) * 0.05,
+        rx: 2 + (b % 4) * 1.6,
+        ry: 1.4 + (b % 3) * 1.2,
+        rot: b * 0.9
+      });
+    }
+
+    function getZoneArtifacts() {
+      var list = [];
+      for (var i = 0; i < ARTIFACTS.length; i++) {
+        if (ARTIFACTS[i].zone === currentZone) list.push(ARTIFACTS[i]);
+      }
+      return list;
+    }
+
+    var zoneBtns = document.querySelectorAll(".zone-btn");
+    for (var z = 0; z < zoneBtns.length; z++) {
+      (function (btn) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          for (var j = 0; j < zoneBtns.length; j++) zoneBtns[j].className = "zone-btn";
+          btn.className = "zone-btn active";
+          currentZone = btn.getAttribute("data-zone");
+          rover.x = W * 0.5;
+          rover.y = H * 0.52;
+          target = null;
+          tracks = [];
+        };
+      })(zoneBtns[z]);
+    }
+
+    window.onresize = function () {
+      var ow = W, oh = H;
+      W = window.innerWidth || 1280; H = window.innerHeight || 720;
+      canvas.width = W; canvas.height = H;
+      rover.x = (rover.x / ow) * W; rover.y = (rover.y / oh) * H;
+    };
+    window.onkeydown = function (e) { keys[e.code] = true; target = null; };
+    window.onkeyup = function (e) { keys[e.code] = false; };
+
+    var pads = document.querySelectorAll(".pad");
+    for (var p = 0; p < pads.length; p++) {
+      (function (btn) {
+        var dir = btn.getAttribute("data-dir");
+        btn.onmousedown = function (e) { e.stopPropagation(); pad[dir] = true; target = null; };
+        btn.onmouseup = function (e) { e.stopPropagation(); pad[dir] = false; };
+        btn.onmouseleave = function () { pad[dir] = false; };
+      })(pads[p]);
+    }
+
+    window.onmousedown = function (e) {
+      if (modalOpen || e.target.tagName === "BUTTON" || e.target.tagName === "A") return;
+      var cx = e.clientX, cy = e.clientY;
+      var list = getZoneArtifacts();
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i], ax = a.nx * W, ay = a.ny * H;
+        if (Math.hypot(ax - cx, ay - cy) <= 60 && Math.hypot(ax - rover.x, ay - rover.y) <= 65) {
+          openArtifact(a);
+          return;
+        }
+      }
+      target = { x: cx, y: cy };
+    };
+
+    var btnScan = document.getElementById("btn-scan");
+    btnScan.onclick = function (e) { e.stopPropagation(); var ov = getOverlap(); if (ov) openArtifact(ov); };
+
+    var artModal = document.getElementById("art-modal"), mClose = document.getElementById("m-close");
+    var mPhoto = document.getElementById("m-photo"), mPhotoStatus = document.getElementById("m-photo-status");
+    var photoCache = {};
+
+    function loadNasaPhoto(a) {
+      mPhoto.style.display = "none";
+      mPhotoStatus.textContent = "Loading NASA archival photo...";
+      if (photoCache[a.id]) {
+        mPhoto.src = photoCache[a.id].src;
+        mPhoto.style.display = "block";
+        mPhotoStatus.textContent = photoCache[a.id].title;
+        return;
+      }
+      var qMatch = a.img.match(/[?&]q=([^&]+)/);
+      var qParam = qMatch ? qMatch[1] : encodeURIComponent(a.name);
+      fetch("https://images-api.nasa.gov/search?q=" + qParam + "&media_type=image")
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var items = data && data.collection && data.collection.items;
+          if (items && items.length > 0 && items[0].links && items[0].links.length > 0) {
+            var src = items[0].links[0].href;
+            var title = (items[0].data && items[0].data[0] && items[0].data[0].title) || "NASA Archival Photograph";
+            photoCache[a.id] = { src: src, title: title };
+            mPhoto.src = src;
+            mPhoto.style.display = "block";
+            mPhotoStatus.textContent = title;
+          } else {
+            mPhotoStatus.textContent = "Archival gallery available via link →";
+          }
+        })
+        .catch(function () {
+          mPhotoStatus.textContent = "Archival gallery available via link →";
+        });
+    }
+
+    function openArtifact(a) {
+      modalOpen = true; target = null; keys = {};
+      var tag = document.getElementById("m-tag"); tag.textContent = a.status; tag.className = a.green ? "tag green" : "tag";
+      document.getElementById("m-title").textContent = a.name;
+      document.getElementById("m-year").textContent = a.year;
+      document.getElementById("m-coords").textContent = a.coords;
+      document.getElementById("m-type").textContent = a.type;
+      document.getElementById("m-story").textContent = a.story;
+      document.getElementById("m-sci").textContent = a.sci;
+      document.getElementById("m-img").href = a.img;
+      loadNasaPhoto(a);
+      document.getElementById("m-q").textContent = "Check: " + a.q;
+      document.getElementById("m-src").textContent = a.src;
+      var optsDiv = document.getElementById("m-opts"); optsDiv.innerHTML = "";
+      var done = !!scanned[a.id]; mClose.disabled = !done; mClose.textContent = done ? "Return to Vehicle" : "Answer Check to Log";
+      for (var i = 0; i < a.opts.length; i++) {
+        (function (idx) {
+          var b = document.createElement("button"); b.type = "button"; b.className = "opt" + (done && idx === a.ans ? " correct" : ""); b.textContent = a.opts[idx];
+          b.onclick = function () {
+            if (idx === a.ans) {
+              b.className = "opt correct";
+              if (!scanned[a.id]) { scanned[a.id] = true; scannedCount++; document.getElementById("score").textContent = scannedCount + " / " + ARTIFACTS.length; }
+              mClose.disabled = false; mClose.textContent = "Log Discovery & Continue";
+            } else { b.className = "opt wrong"; }
+          };
+          optsDiv.appendChild(b);
+        })(i);
+      }
+      artModal.className = "backdrop active";
+    }
+
+    mClose.onclick = function () {
+      artModal.className = "backdrop"; modalOpen = false;
+      if (scannedCount === ARTIFACTS.length && !victoryShown) {
+        victoryShown = true;
+        showInfo("Grand Survey Complete • 13/13", "Solar System Heritage Report Unlocked!", "You cataloged all 13 NASA historical hardware sites across the Moon, Mars, Ceres, Eros, and interstellar space!");
+      }
+    };
+
+    var infoModal = document.getElementById("info-modal");
+    function showInfo(tag, title, body) {
+      modalOpen = true;
+      document.getElementById("i-tag").textContent = tag;
+      document.getElementById("i-title").textContent = title;
+      document.getElementById("i-body").textContent = body;
+      infoModal.className = "backdrop active";
+    }
+    document.getElementById("i-close").onclick = function () { infoModal.className = "backdrop"; modalOpen = false; };
+    document.getElementById("btn-sources").onclick = function (e) {
+      e.stopPropagation();
+      showInfo("NASA Space Apps 2026", "Official Challenge Resources", "All 13 sites and mission facts are extracted directly from the NASA Space Apps 2026 'Abandoned but not Forgotten' challenge resources and NASA Space Science Data Coordinated Archive (NSSDCA).");
+    };
+
+    function getNearest() {
+      var list = getZoneArtifacts(), best = null, minD = 999999;
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (scanned[a.id]) continue;
+        var d = Math.hypot(a.nx * W - rover.x, a.ny * H - rover.y);
+        if (d < minD) { minD = d; best = a; }
+      }
+      return { a: best, d: minD };
+    }
+
+    function getOverlap() {
+      var list = getZoneArtifacts();
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i];
+        if (Math.hypot(a.nx * W - rover.x, a.ny * H - rover.y) <= 65) return a;
+      }
+      return null;
+    }
+
+    function update(dt) {
+      if (modalOpen) return;
+      var ax = 0, ay = 0;
+      if (keys["KeyW"] || keys["ArrowUp"] || pad.up) ay -= 1;
+      if (keys["KeyS"] || keys["ArrowDown"] || pad.down) ay += 1;
+      if (keys["KeyA"] || keys["ArrowLeft"] || pad.left) ax -= 1;
+      if (keys["KeyD"] || keys["ArrowRight"] || pad.right) ax += 1;
+      if (ax === 0 && ay === 0 && target) {
+        var dx = target.x - rover.x, dy = target.y - rover.y, td = Math.hypot(dx, dy);
+        if (td > 8) { ax = dx / td; ay = dy / td; } else { target = null; }
+      }
+      if (ax !== 0 || ay !== 0) {
+        var len = Math.hypot(ax, ay); ax /= len; ay /= len;
+        rover.x += ax * 300 * dt; rover.y += ay * 300 * dt;
+        rover.angle = Math.atan2(ay, ax);
+        if (Math.random() < 0.4) { tracks.push({ x: rover.x, y: rover.y, angle: rover.angle }); if (tracks.length > 200) tracks.shift(); }
+      }
+      rover.x = Math.max(36, Math.min(W - 36, rover.x));
+      rover.y = Math.max(95, Math.min(H - 85, rover.y));
+
+      var near = getNearest();
+      document.getElementById("dist").textContent = near.a ? Math.round(near.d) + " m" : "DONE";
+      pulse += dt * 130; if (pulse > 130) pulse = 18;
+
+      var ov = getOverlap(), hint = document.getElementById("hint");
+      if (ov) {
+        btnScan.style.display = "inline-block";
+        hint.textContent = "Signal Locked: " + ov.name;
+        if (keys["Space"]) openArtifact(ov);
+      } else {
+        btnScan.style.display = "none";
+        hint.textContent = near.a ? "Click any glowing circle to drive & scan" : "Sector complete! Switch sectors in the top bar.";
+      }
+    }
+
+    function draw() {
+      var z = ZONES[currentZone];
+      ctx.fillStyle = z.bg; ctx.fillRect(0, 0, W, H);
+
+      if (currentZone === "moon") {
+        // Subtle lunar mare (dark basalt plains) and lighter highland patches
+        for (var m = 0; m < maria.length; m++) {
+          var mp = maria[m];
+          ctx.save();
+          ctx.translate(mp.nx * W, mp.ny * H);
+          ctx.rotate(mp.rot);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, mp.rx * (W / 1280), mp.ry * (H / 720), 0, 0, Math.PI * 2);
+          ctx.fillStyle = mp.dark ? "rgba(42, 45, 50, 0.5)" : "rgba(96, 101, 110, 0.35)";
+          ctx.fill();
+          ctx.restore();
+        }
+        // Sinuous lunar rille (channel)
+        ctx.beginPath();
+        ctx.moveTo(W * 0.12, H * 0.18);
+        ctx.bezierCurveTo(W * 0.28, H * 0.32, W * 0.18, H * 0.55, W * 0.38, H * 0.72);
+        ctx.strokeStyle = "rgba(32, 35, 39, 0.55)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(135, 140, 150, 0.3)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else if (currentZone === "mars") {
+        // Dark basaltic sand sheets and bright iron-oxide dust plains
+        for (var m2 = 0; m2 < maria.length; m2++) {
+          var mp2 = maria[m2];
+          ctx.save();
+          ctx.translate(mp2.nx * W, mp2.ny * H);
+          ctx.rotate(mp2.rot + 0.5);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, mp2.rx * (W / 1280), mp2.ry * (H / 720), 0, 0, Math.PI * 2);
+          ctx.fillStyle = mp2.dark ? "rgba(42, 18, 10, 0.55)" : "rgba(124, 58, 32, 0.32)";
+          ctx.fill();
+          ctx.restore();
+        }
+        // Ancient dry river outflow channel (Jezero / Neretva Vallis style)
+        ctx.beginPath();
+        ctx.moveTo(W * 0.08, H * 0.48);
+        ctx.bezierCurveTo(W * 0.32, H * 0.38, W * 0.55, H * 0.62, W * 0.92, H * 0.44);
+        ctx.strokeStyle = "rgba(38, 15, 8, 0.6)";
+        ctx.lineWidth = 14;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(138, 68, 40, 0.35)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        // Windblown aeolian sand dune ripples
+        ctx.strokeStyle = "rgba(148, 76, 44, 0.24)";
+        ctx.lineWidth = 1.5;
+        for (var dn = 0; dn < 18; dn++) {
+          var dx = ((dn * 197) % 100) / 100 * W * 0.84 + W * 0.08;
+          var dy = ((dn * 131) % 100) / 100 * H * 0.76 + H * 0.12;
+          for (var rp = -1; rp <= 1; rp++) {
+            ctx.beginPath();
+            ctx.moveTo(dx - 26, dy + rp * 7);
+            ctx.quadraticCurveTo(dx, dy + rp * 7 - 6, dx + 26, dy + rp * 7);
+            ctx.stroke();
+          }
+        }
+      } else if (currentZone === "deep") {
+        // Milky Way galactic dust band
+        ctx.save();
+        ctx.translate(W * 0.5, H * 0.5);
+        ctx.rotate(-0.42);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, W * 0.65, H * 0.18, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(38, 52, 94, 0.22)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(-W * 0.12, 0, W * 0.35, H * 0.09, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(88, 56, 128, 0.16)";
+        ctx.fill();
+        ctx.restore();
+        // Faint heliocentric orbital paths
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.09)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([8, 8]);
+        for (var orb = 1; orb <= 3; orb++) {
+          ctx.beginPath();
+          ctx.arc(W * 1.05, H * 0.95, Math.hypot(W, H) * (0.28 * orb), Math.PI * 0.95, Math.PI * 1.55);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        // Multi-colored starfield
+        for (var s = 0; s < stars.length; s++) {
+          var st = stars[s];
+          ctx.globalAlpha = st.alpha;
+          ctx.fillStyle = st.col;
+          ctx.beginPath();
+          ctx.arc(st.nx * W, st.ny * H, st.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        // Main Belt asteroid scatter
+        for (var b = 0; b < belt.length; b++) {
+          var ab = belt[b];
+          ctx.save();
+          ctx.translate(ab.nx * W, ab.ny * H);
+          ctx.rotate(ab.rot);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, ab.rx, ab.ry, 0, 0, Math.PI * 2);
+          ctx.fillStyle = "#475569";
+          ctx.fill();
+          ctx.restore();
+        }
+        // 1. Dwarf Planet Ceres (near Dawn at 0.24, 0.30) with bright Occator salt spots
+        var ceresX = W * 0.17, ceresY = H * 0.27;
+        ctx.beginPath(); ctx.arc(ceresX, ceresY, 28, 0, Math.PI * 2);
+        ctx.fillStyle = "#333842"; ctx.fill();
+        ctx.beginPath(); ctx.arc(ceresX - 5, ceresY - 5, 23, 0, Math.PI * 2);
+        ctx.fillStyle = "#4b5260"; ctx.fill();
+        ctx.beginPath(); ctx.arc(ceresX + 6, ceresY - 3, 2.6, 0, Math.PI * 2);
+        ctx.arc(ceresX + 10, ceresY - 2, 1.4, 0, Math.PI * 2);
+        ctx.fillStyle = "#e0f2fe"; ctx.fill();
+        // 2. Asteroid 433 Eros (near NEAR Shoemaker at 0.76, 0.30)
+        ctx.save();
+        ctx.translate(W * 0.83, H * 0.27);
+        ctx.rotate(-0.35);
+        ctx.beginPath();
+        ctx.ellipse(-10, 0, 22, 11, 0, 0, Math.PI * 2);
+        ctx.ellipse(12, 2, 18, 9, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#6b5b4d"; ctx.fill();
+        ctx.beginPath(); ctx.arc(-6, -2, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#4a3e35"; ctx.fill();
+        ctx.restore();
+        // 3. Ringed Gas Giant Saturn (near Pioneer 10/11 at 0.24, 0.74)
+        ctx.save();
+        ctx.translate(W * 0.16, H * 0.76);
+        ctx.rotate(-0.28);
+        ctx.beginPath(); ctx.ellipse(0, 0, 44, 11, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(217, 185, 139, 0.45)"; ctx.lineWidth = 5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, 19, 0, Math.PI * 2);
+        ctx.fillStyle = "#c29d68"; ctx.fill();
+        ctx.restore();
+        // 4. Kepler Target Star & Transiting Exoplanet (near Kepler at 0.76, 0.74)
+        var kepX = W * 0.83, kepY = H * 0.75;
+        ctx.beginPath(); ctx.arc(kepX, kepY, 34, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.22)"; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(kepX, kepY, 14, 0, Math.PI * 2);
+        ctx.fillStyle = "#fbbf24"; ctx.fill();
+        ctx.beginPath(); ctx.arc(kepX - 34, kepY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#1e293b"; ctx.fill();
+      }
+
+      ctx.strokeStyle = "rgba(255,255,255,0.045)"; ctx.lineWidth = 1;
+      for (var gx = 0; gx <= W; gx += 80) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+      for (var gy = 0; gy <= H; gy += 80) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+      if (currentZone !== "deep") {
+        for (var c = 0; c < craters.length; c++) {
+          var cr = craters[c], cx = cr.nx * W, cy = cr.ny * H;
+          if (currentZone === "moon") {
+            // Faint radial ejecta rays on select craters
+            if (cr.rays) {
+              ctx.strokeStyle = "rgba(185, 190, 200, 0.16)";
+              ctx.lineWidth = 2;
+              for (var r = 0; r < 8; r++) {
+                var ra = (r * Math.PI) / 4 + 0.3;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.cos(ra) * cr.r, cy + Math.sin(ra) * cr.r);
+                ctx.lineTo(cx + Math.cos(ra) * (cr.r * 2.1), cy + Math.sin(ra) * (cr.r * 2.1));
+                ctx.stroke();
+              }
+            }
+            // Outer raised ejecta blanket
+            ctx.beginPath(); ctx.arc(cx, cy, cr.r + 4, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(105, 110, 118, 0.38)"; ctx.fill();
+            // Crater bowl shadow base + sunlit floor (sunlight from top-left)
+            ctx.save();
+            ctx.beginPath(); ctx.arc(cx, cy, cr.r, 0, Math.PI * 2);
+            ctx.fillStyle = "#222428"; ctx.fill();
+            ctx.clip();
+            ctx.beginPath(); ctx.arc(cx + cr.r * 0.24, cy + cr.r * 0.24, cr.r * 0.95, 0, Math.PI * 2);
+            ctx.fillStyle = z.crater;
+            ctx.fill();
+            ctx.restore();
+            // Sunlit SE rim highlight & shaded NW rim
+            ctx.beginPath(); ctx.arc(cx, cy, cr.r, -Math.PI * 0.15, Math.PI * 0.65);
+            ctx.strokeStyle = "rgba(175, 180, 190, 0.65)"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, cr.r, Math.PI * 0.65, Math.PI * 1.85);
+            ctx.strokeStyle = "rgba(25, 27, 30, 0.75)"; ctx.lineWidth = 1.5; ctx.stroke();
+            // Central peak for large craters
+            if (cr.r >= 40) {
+              ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = "#7a7f87"; ctx.fill();
+            }
+          } else if (currentZone === "mars") {
+            // Dark windstreak tail behind Martian craters
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - cr.r * 0.75);
+            ctx.lineTo(cx + cr.r * 2.3, cy - cr.r * 0.25);
+            ctx.lineTo(cx, cy + cr.r * 0.75);
+            ctx.closePath();
+            ctx.fillStyle = "rgba(32, 12, 6, 0.36)";
+            ctx.fill();
+            // Weathered crater bowl with warm ochre dust sediment inside
+            ctx.save();
+            ctx.beginPath(); ctx.arc(cx, cy, cr.r, 0, Math.PI * 2);
+            ctx.fillStyle = "#261008"; ctx.fill();
+            ctx.clip();
+            ctx.beginPath(); ctx.arc(cx + cr.r * 0.2, cy + cr.r * 0.2, cr.r * 0.92, 0, Math.PI * 2);
+            ctx.fillStyle = "#5c2c1a";
+            ctx.fill();
+            ctx.restore();
+            // Eroded rim highlight
+            ctx.beginPath(); ctx.arc(cx, cy, cr.r, -Math.PI * 0.2, Math.PI * 0.7);
+            ctx.strokeStyle = "rgba(168, 85, 50, 0.55)"; ctx.lineWidth = 2; ctx.stroke();
+          }
+        }
+
+        // Scattered surface pebbles and boulders (Moon & Mars)
+        for (var rk = 0; rk < rocks.length; rk++) {
+          var ro = rocks[rk];
+          ctx.beginPath();
+          ctx.arc(ro.nx * W, ro.ny * H, ro.r, 0, Math.PI * 2);
+          ctx.fillStyle = currentZone === "moon" ? ro.shade : ro.marsShade;
+          ctx.fill();
+        }
+      }
+
+      if (currentZone !== "deep") {
+        for (var t = 0; t < tracks.length; t++) {
+          var tr = tracks[t];
+          ctx.save(); ctx.translate(tr.x, tr.y); ctx.rotate(tr.angle);
+          ctx.fillStyle = "rgba(8,10,15,0.45)";
+          ctx.fillRect(-14, -15, 28, 5); ctx.fillRect(-14, 10, 28, 5);
+          ctx.restore();
+        }
+      }
+
+      if (target) {
+        ctx.beginPath(); ctx.moveTo(rover.x, rover.y); ctx.lineTo(target.x, target.y);
+        ctx.strokeStyle = z.accent; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(target.x, target.y, 12, 0, Math.PI * 2); ctx.strokeStyle = z.accent; ctx.stroke();
+      }
+
+      var list = getZoneArtifacts();
+      for (var i = 0; i < list.length; i++) {
+        var a = list[i], ax = a.nx * W, ay = a.ny * H, done = !!scanned[a.id];
+        ctx.beginPath(); ctx.arc(ax, ay, 58, 0, Math.PI * 2);
+        ctx.strokeStyle = done ? "rgba(16,185,129,0.6)" : "rgba(255,255,255,0.35)";
+        ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(ax, ay, 16, 0, Math.PI * 2);
+        ctx.fillStyle = a.color; ctx.fill();
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = "#f1f5f9"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(done ? "DONE: " + a.name : a.name, ax, ay - 26);
+      }
+
+      var near = getNearest();
+      if (near.a) {
+        var col = near.d < 160 ? "16,185,129" : near.d < 360 ? "245,158,11" : "56,189,248";
+        ctx.beginPath(); ctx.arc(rover.x, rover.y, pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(" + col + "," + Math.max(0, 1 - pulse / 130) + ")"; ctx.lineWidth = 3; ctx.stroke();
+        var ang = Math.atan2(near.a.ny * H - rover.y, near.a.nx * W - rover.x);
+        ctx.save(); ctx.translate(rover.x + Math.cos(ang) * 54, rover.y + Math.sin(ang) * 54); ctx.rotate(ang);
+        ctx.fillStyle = "rgb(" + col + ")"; ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(-7, -7); ctx.lineTo(-7, 7); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+
+      ctx.save(); ctx.translate(rover.x, rover.y);
+      ctx.beginPath(); ctx.arc(0, 0, 34, 0, Math.PI * 2); ctx.fillStyle = "rgba(56,189,248,0.16)"; ctx.fill();
+      ctx.rotate(rover.angle);
+      if (currentZone === "deep") {
+        // Xenon ion thruster plume (rear)
+        ctx.beginPath();
+        ctx.moveTo(-16, -5); ctx.lineTo(-34 - (pulse % 9), 0); ctx.lineTo(-16, 5);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(56, 189, 248, 0.75)"; ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-16, -2.5); ctx.lineTo(-25, 0); ctx.lineTo(-16, 2.5);
+        ctx.closePath();
+        ctx.fillStyle = "#e0f2fe"; ctx.fill();
+        // Solar array wings (port & starboard)
+        ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, -34); ctx.lineTo(0, 34); ctx.stroke();
+        ctx.fillStyle = "#1e3a8a";
+        ctx.strokeStyle = "#60a5fa"; ctx.lineWidth = 1.5;
+        ctx.fillRect(-7, -34, 14, 21); ctx.strokeRect(-7, -34, 14, 21);
+        ctx.fillRect(-7, 13, 14, 21); ctx.strokeRect(-7, 13, 14, 21);
+        // Solar cell grid lines
+        ctx.strokeStyle = "rgba(147, 197, 253, 0.45)"; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-7, -27); ctx.lineTo(7, -27);
+        ctx.moveTo(-7, -20); ctx.lineTo(7, -20);
+        ctx.moveTo(-7, 20); ctx.lineTo(7, 20);
+        ctx.moveTo(-7, 27); ctx.lineTo(7, 27);
+        ctx.stroke();
+        // Thruster nozzle
+        ctx.fillStyle = "#475569";
+        ctx.fillRect(-17, -4, 5, 8);
+        // Central octagonal spacecraft bus wrapped in gold MLI foil
+        ctx.beginPath();
+        ctx.moveTo(-12, -9); ctx.lineTo(8, -9); ctx.lineTo(13, -5);
+        ctx.lineTo(13, 5); ctx.lineTo(8, 9); ctx.lineTo(-12, 9);
+        ctx.closePath();
+        ctx.fillStyle = "#f59e0b"; ctx.fill();
+        ctx.strokeStyle = z.accent; ctx.lineWidth = 2; ctx.stroke();
+        // Instrument deck
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(-7, -5, 11, 10);
+        // Forward parabolic High-Gain Dish Antenna & feed horn
+        ctx.beginPath();
+        ctx.arc(12, 0, 11, -Math.PI * 0.42, Math.PI * 0.42);
+        ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(13, 0); ctx.lineTo(22, 0);
+        ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(22, 0, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = z.accent; ctx.fill();
+      } else {
+        // Soft ground shadow under rover
+        ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+        ctx.fillRect(-23, -18, 46, 36);
+
+        // Rocker-bogie suspension struts connecting chassis to 6 wheels
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 2.5;
+        var wx = [-17, 0, 17];
+        for (var w = 0; w < 3; w++) {
+          ctx.beginPath();
+          ctx.moveTo(wx[w], -12); ctx.lineTo(wx[w], -21);
+          ctx.moveTo(wx[w], 12); ctx.lineTo(wx[w], 21);
+          ctx.stroke();
+          // 6 cleated rover wheels (left & right)
+          var wyList = [-24, 17];
+          for (var s = 0; s < 2; s++) {
+            var wy = wyList[s];
+            ctx.fillStyle = "#111827";
+            ctx.fillRect(wx[w] - 6, wy, 12, 7);
+            ctx.strokeStyle = "#475569";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(wx[w] - 6, wy, 12, 7);
+            // Wheel tread cleats
+            ctx.fillStyle = "#64748b";
+            ctx.fillRect(wx[w] - 4, wy, 2, 7);
+            ctx.fillRect(wx[w] + 2, wy, 2, 7);
+          }
+        }
+
+        if (currentZone === "moon") {
+          // Subtle forward rover headlight cones
+          ctx.beginPath();
+          ctx.moveTo(22, -9); ctx.lineTo(44, -18); ctx.lineTo(44, -2); ctx.closePath();
+          ctx.moveTo(22, 9); ctx.lineTo(44, 2); ctx.lineTo(44, 18); ctx.closePath();
+          ctx.fillStyle = "rgba(254, 243, 199, 0.16)";
+          ctx.fill();
+
+          // Beveled Artemis lunar rover chassis
+          ctx.beginPath();
+          ctx.moveTo(-21, -14); ctx.lineTo(17, -14); ctx.lineTo(22, -10);
+          ctx.lineTo(22, 10); ctx.lineTo(17, 14); ctx.lineTo(-21, 14);
+          ctx.closePath();
+          ctx.fillStyle = "#e2e8f0"; ctx.fill();
+          ctx.strokeStyle = z.accent; ctx.lineWidth = 2; ctx.stroke();
+
+          // Rear solar / radiator deck
+          ctx.fillStyle = "#1e3a8a";
+          ctx.fillRect(-18, -10, 12, 20);
+          ctx.strokeStyle = "#60a5fa"; ctx.lineWidth = 1;
+          ctx.strokeRect(-18, -10, 12, 20);
+
+          // Gold MLI thermal avionics bay (center)
+          ctx.fillStyle = "#f59e0b";
+          ctx.fillRect(-3, -10, 14, 20);
+          ctx.strokeStyle = "#b45309";
+          ctx.strokeRect(-3, -10, 14, 20);
+
+          // High-gain umbrella dish antenna (port-front)
+          ctx.beginPath();
+          ctx.arc(8, -7, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(248, 250, 252, 0.85)"; ctx.fill();
+          ctx.strokeStyle = "#64748b"; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.beginPath(); ctx.arc(8, -7, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = z.accent; ctx.fill();
+
+          // Forward navigation mast & stereo camera bar
+          ctx.fillStyle = "#334155";
+          ctx.fillRect(14, -7, 5, 14);
+          ctx.fillStyle = "#38bdf8";
+          ctx.fillRect(17, -5, 2.5, 3.5);
+          ctx.fillRect(17, 1.5, 2.5, 3.5);
+        } else {
+          // MARS ROVER (Perseverance / Curiosity style)
+          // Rear angled MMRTG nuclear power source + radiator fins
+          ctx.fillStyle = "#cbd5e1";
+          ctx.fillRect(-27, -7, 8, 14);
+          ctx.fillStyle = "#475569";
+          ctx.fillRect(-28, -5, 8, 10);
+          ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 1;
+          ctx.strokeRect(-28, -5, 8, 10);
+
+          // Sculpted hexagonal rover warm-electronics chassis
+          ctx.beginPath();
+          ctx.moveTo(-20, -14); ctx.lineTo(16, -14); ctx.lineTo(21, -9);
+          ctx.lineTo(21, 9); ctx.lineTo(16, 14); ctx.lineTo(-20, 14);
+          ctx.closePath();
+          ctx.fillStyle = "#f1f5f9"; ctx.fill();
+          ctx.strokeStyle = z.accent; ctx.lineWidth = 2; ctx.stroke();
+
+          // Internal deck plating & gold thermal blanket bay
+          ctx.fillStyle = "#d97706";
+          ctx.fillRect(-15, -10, 22, 20);
+          ctx.fillStyle = "#334155";
+          ctx.fillRect(-11, -7, 14, 14);
+
+          // Front-mounted articulated robotic sample arm & drill turret
+          ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(18, 8); ctx.lineTo(27, 10); ctx.lineTo(29, 3);
+          ctx.stroke();
+          ctx.beginPath(); ctx.arc(29, 3, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#475569"; ctx.fill();
+          ctx.strokeStyle = z.accent; ctx.lineWidth = 1.2; ctx.stroke();
+
+          // Remote Sensing Mastcam / SuperCam head (front-right)
+          ctx.fillStyle = "#e2e8f0";
+          ctx.fillRect(11, -9, 7, 11);
+          ctx.strokeStyle = "#475569"; ctx.lineWidth = 1.2;
+          ctx.strokeRect(11, -9, 7, 11);
+          ctx.beginPath(); ctx.arc(16, -3.5, 2.3, 0, Math.PI * 2);
+          ctx.fillStyle = "#ef4444"; ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      ctx.fillStyle = z.accent; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(z.label, rover.x, rover.y - 34);
+    }
+
+    var last = performance.now();
+    function loop(now) { var dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); draw(); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
