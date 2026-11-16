@@ -1,10 +1,10 @@
 # Space-Detective
 
+This is a simple app to explore the space artifacts for NASA hackathon.
+
 TO RUN, MUST DOWNLOAD index.html AND OPEN IN A BROWSER
 
 Use arrow keys, WASD, or tap with a mouse to move the rover. Click or tap the site upon reaching the site
-
-This is a simple app to explore the space artifacts for NASA hackathon.
 
 Space Detective is built with regular web technologies:
 
