@@ -6,6 +6,7 @@ TO RUN, MUST DOWNLOAD index.html AND OPEN IN A BROWSER
 
 Use arrow keys, WASD, or tap with a mouse to move the rover. Click or tap the site upon reaching the site
 
+
 Space Detective is built with regular web technologies:
 
 HTML & CSS: Builds the user interface, top scoreboard, on-screen controls, and pop-up windows.
