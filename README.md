@@ -1,4 +1,7 @@
 # Space-Detective
+
+TO RUN, MUST DOWNLOAD AND OPEN IN A BROWSER
+
 This is a simple app to explore the space artifacts for NASA hackathon.
 
 Space Detective is built with regular web technologies:
