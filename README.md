@@ -16,3 +16,5 @@ HTML5 Canvas: Draws the 2D space maps, craters, rovers, and radar animations in 
 JavaScript: Controls rover movement, collision detection, and the quiz system.
 
 NASA Image API: Fetches real archival photos from NASA to display inside each pop-up.
+
+(List can be moved to a json or database for future expansion. Currently embedded in javascript.
